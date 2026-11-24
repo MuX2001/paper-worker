@@ -13,7 +13,9 @@ Verified locally on Windows / Python 3.13 on 2026-11-24.
 | Supabase | Claim race, success, failure and token finalization tested; actual SDK with mock HTTP verifies GET/PATCH filters and return representation; no cloud instance configured |
 | GUI | Tk initialization, settings persistence, threaded execution, log delivery tested; layout requests fit the 680×520 window |
 | Packaging | sdist and wheel built successfully, prompts/templates included |
-| Quality | 26 tests passed; Ruff check/format and pip check passed |
+| Quality | 27 tests passed; Ruff check/format and pip check passed |
+
+The integrated regression test uses a real generated PDF and pypdf extraction, simulated arXiv/GitHub HTTP responses, and a simulated Codex process. It verifies repository tree and issue evidence reaches the analysis invocation, then checks the actual Markdown audit row and cached JSON. It does not count as live GitHub/Zotero verification.
 
 Two earlier real paper runs completed before a PDF line-wrap extraction bug was corrected. Their notes contain paper analysis but no fetched repository context. After correction the real GitHub request correctly reaches Tensor2Tensor, but anonymous API quota is exhausted. A final live run with repository evidence is pending a GitHub token or quota reset. This is not counted as verified GitHub end-to-end success.
 
