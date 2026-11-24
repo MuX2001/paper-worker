@@ -1,0 +1,43 @@
+---
+{{ frontmatter }}---
+
+# {{ paper.title }}
+
+{{ analysis.tldr }}
+
+- 作者：{{ paper.authors | join(', ') }}
+- 发表日期：{{ paper.published[:10] }}
+- 论文：[arXiv {{ paper.arxiv_id }}]({{ paper.url }})
+{% if analysis.repo_url %}- 代码：[GitHub]({{ analysis.repo_url }})
+{% endif %}
+
+## 解决的问题
+{{ analysis.problem }}
+
+## 方法细节
+{% for detail in analysis.method_details %}- {{ detail }}
+{% endfor %}
+
+## 实验
+- 数据集：{{ analysis.experiments.datasets | join(', ') }}
+- 主要结果：{{ analysis.experiments.key_results }}
+- 实验疑点：{{ analysis.experiments.red_flags }}
+
+## 代码审查
+状态：{{ analysis.code_status }}
+
+| 论文模块 | 文件路径 | 证据状态 |
+| --- | --- | --- |
+{% for item in analysis.code_audit %}| {{ item.paper_module | table_cell }} | {{ item.file_path | table_cell }} | {{ item.status }} |
+{% endfor %}
+
+## 缺失资产
+{% for asset in analysis.missing_assets %}- {{ asset }}
+{% else %}- 未发现有证据支持的缺失资产
+{% endfor %}
+
+## 声明与证据
+{% if analysis.hype_flag %}> [!warning] 声明超过现有证据
+> {{ analysis.hype_reason | replace('\n', '\n> ') }}
+{% else %}未发现足以标记夸大宣传的证据。
+{% endif %}

@@ -1,0 +1,13 @@
+obsidian_vault_dir: ./output
+cache_dir: ~/.cache/paper-worker
+codex_command: codex exec --full-auto
+codex_timeout: 900
+github_token: ''
+zotero:
+  library_id: ''
+  library_type: user
+  api_key: ''
+  collection_key: ''
+supabase:
+  url: ''
+  key: ''

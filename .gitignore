@@ -1,0 +1,21 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+config.yaml
+.env
+.cache/
+artifacts/
+*.log
+# Local implementation notes may contain machine-specific paths.
+task_plan.md
+findings.md
+progress.md
+# Local implementation notes may contain machine-specific paths.
+task_plan.md
+findings.md
+progress.md
