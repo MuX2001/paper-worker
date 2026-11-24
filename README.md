@@ -76,7 +76,11 @@ worker 崩溃后，确认进程已停止，再将该任务重置为 `pending` �
 
 测试默认不调用外部服务或 Codex。覆盖 arXiv 解析与 HTTP、PDF 换行链接、GitHub API、Codex JSON 提取及重试、配置、Jinja2/YAML、Zotero 去重、队列领取/失败与 CLI/GUI。无显示器的环境会跳过 GUI 测试；Windows 本机可直接运行。
 
-提示词位于 `src/paper_worker/prompts/`，运行时读取 Athena 的分析规范及共享模板。`src/paper_worker/templates/analysis_summary.md.j2` 仅提供缺少完整 `note_body` 时的未完成分析区域，不定义笔记外壳；旧中文摘要需要重新生成英文。JSON 增加 `paper_type` 和 `note_body`，其他结构化字段仅用于分析归档，不传给 Zotero。arXiv 下载固定到 API 返回的确切版本。其余模块与 `PROJECT_PLAN.md` 对应。
+提示词位于 `src/paper_worker/prompts/`。运行时读取 Athena 的 `AGENTS.md`、paper-analysis skill、分析规范、共享模板，以及用户指定的 `Attention Is All You Need.md` 管理区域作为写作深度范例；不传入该笔记的 Properties 或 Personal Notes。范例不作为待分析论文的事实来源，即使标题相同，也不能跨版本套用结果。
+
+`note_body` 是完整 Paper Analysis，短字段仅作分析索引。没有完整正文时拒绝导出，不再将短摘要拼成正式论文笔记。页码标记辅助定位原 PDF；数学定义、维度、训练/推理细节、定量比较、消融、针对具体主张的证据评述及复现资产解释均按原 workflow 要求撰写。不同论文类型保留各自适用的分析维度。
+
+当前预采集仍只有仓库目录、README 和 issue 标题，不能声称完成了原范例那种固定 commit 的源码、权重、数据与评测逐项检查；没有实际查看图表也不能声称视觉审阅。生成指令改进不等同于已完成真实论文内容验收。arXiv 下载固定到 API 返回的确切版本。
 
 Git 默认分支为 `main`。尚未指定远端，上传时可自行添加：
 

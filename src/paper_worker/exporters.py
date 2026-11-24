@@ -1,30 +1,15 @@
-import re
-from importlib.resources import files
 from pathlib import Path
-
-from jinja2 import Environment, StrictUndefined
 
 from .config import ZoteroConfig
 from .schemas import PaperAnalysis, PaperMetadata
 
 
 def render_analysis(paper: PaperMetadata, analysis: PaperAnalysis) -> str:
-    if analysis.note_body:
-        return analysis.note_body
-    if re.search(r"[\u4e00-\u9fff]", analysis.tldr):
-        raise ValueError("Legacy Chinese summary must be regenerated in English for Athena")
-    environment = Environment(
-        undefined=StrictUndefined, autoescape=False, keep_trailing_newline=True
-    )
-    environment.filters["table_cell"] = lambda value: value.replace("|", "\\|").replace(
-        "\n", "<br>"
-    )
-    template = environment.from_string(
-        files("paper_worker")
-        .joinpath("templates/analysis_summary.md.j2")
-        .read_text(encoding="utf-8")
-    )
-    return template.render(paper=paper, analysis=analysis)
+    if not analysis.note_body.strip():
+        raise ValueError(
+            "Full Paper Analysis is missing. A short summary cannot be exported as an Athena paper note."
+        )
+    return analysis.note_body
 
 
 def export_obsidian(

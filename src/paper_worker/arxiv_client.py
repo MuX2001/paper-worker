@@ -79,4 +79,5 @@ def extract_text(pdf_path: Path) -> tuple[str, str]:
     indices = sorted(
         set(range(min(3, len(pages)))) | set(range(max(0, len(pages) - 2), len(pages)))
     )
-    return "\n\n".join(pages), "\n\n".join(pages[i] for i in indices)
+    numbered = [f"--- PDF page {i + 1} ---\n{text}" for i, text in enumerate(pages)]
+    return "\n\n".join(numbered), "\n\n".join(pages[i] for i in indices)

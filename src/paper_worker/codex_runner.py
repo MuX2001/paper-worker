@@ -81,22 +81,10 @@ def run_codex(
     schema_path.write_text(json.dumps(schema, ensure_ascii=False), encoding="utf-8")
     output = workspace / "codex-result.json"
     prompt = files("paper_worker").joinpath("prompts/audit_prompt.txt").read_text(encoding="utf-8")
-    from .athena import vault_root
+    from .writing_context import writing_context
 
-    try:
-        root = vault_root(config.obsidian_vault_dir)
-    except ValueError:
-        root = None
-    if root:
-        prompt += "\nShared note structure (fill only the managed region):\n" + (
-            root / "_template/_template_paper.md"
-        ).read_text(encoding="utf-8-sig")
-        specification = root / ".agents/skills/paper-analysis/references/analysis-spec.md"
-        if specification.is_file():
-            prompt += "\nUser-provided analysis requirements:\n" + specification.read_text(
-                encoding="utf-8-sig"
-            )
-    prompt += f"\nPDF: {pdf}\nExtracted full text: {workspace / 'paper.txt'}\nRepository context: {repo or 'No repository link found'}\nSchema: {schema_path}\n"
+    prompt += "\n" + writing_context(config.obsidian_vault_dir)
+    prompt += f"\nPrimary PDF: {pdf}\nExact source metadata: {workspace / 'metadata.json'}\nPage-numbered extracted full text: {workspace / 'paper.txt'}\nRepository context: {repo or 'No repository link found'}\nSchema: {schema_path}\n"
     invocation = args + [
         "--skip-git-repo-check",
         "--output-schema",

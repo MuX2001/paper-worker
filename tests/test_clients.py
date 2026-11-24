@@ -51,14 +51,17 @@ def test_github_http(tmp_path, empty):
     assert repo["tree"] == ([] if empty else ["model.py"])
 
 
-def test_codex_retry(tmp_path, analysis):
+def test_codex_retry(tmp_path, athena_vault, analysis):
     replies = [
         SimpleNamespace(returncode=0, stdout="invalid output", stderr=""),
         SimpleNamespace(returncode=0, stdout=analysis.model_dump_json(), stderr=""),
     ]
     with patch("paper_worker.codex_runner.subprocess.run", side_effect=replies) as run:
         result = run_codex(
-            Config(codex_command="codex exec"), tmp_path, tmp_path / "paper.pdf", None
+            Config(codex_command="codex exec", obsidian_vault_dir=athena_vault),
+            tmp_path,
+            tmp_path / "paper.pdf",
+            None,
         )
     assert result == analysis
     assert run.call_count == 2
@@ -66,11 +69,16 @@ def test_codex_retry(tmp_path, analysis):
     assert run.call_args.kwargs.get("shell", False) is False
 
 
-def test_codex_invalid_twice(tmp_path):
+def test_codex_invalid_twice(tmp_path, athena_vault):
     reply = SimpleNamespace(returncode=0, stdout="{}", stderr="")
     with patch("paper_worker.codex_runner.subprocess.run", return_value=reply) as run:
         with pytest.raises(ValueError):
-            run_codex(Config(codex_command="codex exec"), tmp_path, tmp_path / "paper.pdf", None)
+            run_codex(
+                Config(codex_command="codex exec", obsidian_vault_dir=athena_vault),
+                tmp_path,
+                tmp_path / "paper.pdf",
+                None,
+            )
     assert run.call_count == 2
 
 

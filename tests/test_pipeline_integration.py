@@ -41,6 +41,7 @@ def paper_pdf():
 def test_full_pipeline_passes_repository_evidence_and_exports(tmp_path, athena_vault, analysis):
     analysis.repo_url = "https://github.com/example/research"
     analysis.code_status = "partial"
+    analysis.note_body += "\n\n### Research Assets & Reproducibility\n\nCode status: partial\n\n| Paper module | Path | Status |\n|---|---|---|\n| Attention | model.py | unclear |\n"
     from paper_worker.schemas import CodeAuditItem
 
     analysis.code_audit = [

@@ -19,6 +19,7 @@ def analysis():
         code_audit=[],
         missing_assets=[],
         hype_flag=False,
+        note_body="## Overview\n\n### Key Takeaways\n\nSparse attention reduces compute\n\n## Paper Analysis\n\n### Problem Formulation\n\nDense attention is expensive\n\n### Sources & Coverage\n\nSynthetic test fixture, not a scientific acceptance example.",
     )
 
 

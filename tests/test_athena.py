@@ -19,6 +19,9 @@ def test_protected_content_and_existing_path(athena_vault, paper, analysis, tmp_
     moved = path.with_name("My existing filename.md")
     path.rename(moved)
     analysis.problem = "Updated managed analysis"
+    analysis.note_body = analysis.note_body.replace(
+        "Dense attention is expensive", "Updated managed analysis"
+    )
     workspace = tmp_path / "run"
     assert export_obsidian(paper, analysis, athena_vault, workspace) == moved
     updated = moved.read_bytes()

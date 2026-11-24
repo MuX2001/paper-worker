@@ -2,5 +2,4 @@ include config.example.yaml
 include PROJECT_PLAN.md
 recursive-include sql *.sql
 recursive-include src/paper_worker/prompts *.txt
-recursive-include src/paper_worker/templates *.j2
 recursive-include tests/fixtures *.md *.py
