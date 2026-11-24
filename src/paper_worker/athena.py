@@ -48,7 +48,7 @@ def normalized_doi(value: str) -> str:
     ).casefold()
 
 
-def find_existing(root: Path, paper: PaperMetadata) -> Path | None:
+def find_existing(root: Path, paper: PaperMetadata, registration=None) -> Path | None:
     candidates = []
     for path in root.rglob("*.md"):
         if any(
@@ -79,6 +79,14 @@ def find_existing(root: Path, paper: PaperMetadata) -> Path | None:
             if doi_match and meta.get("arxiv_id") and not matched:
                 raise ValueError(f"Conflicting DOI/arXiv identity: {path}")
             matched = matched or doi_match
+        if (
+            registration
+            and meta.get("zotero_library") == registration.library
+            and meta.get("zotero_key") == registration.key
+        ):
+            if meta.get("arxiv_id") and not matched:
+                raise ValueError(f"Zotero association conflicts with paper identity: {path}")
+            matched = True
         title_match = bool(meta.get("title")) and normalized(meta["title"]) == normalized(
             paper.title
         )
@@ -125,13 +133,23 @@ def export_note(
     directory: Path,
     body: str,
     workspace: Path | None = None,
+    registration=None,
 ) -> Path:
     root = vault_root(directory)
-    existing = find_existing(root, paper)
+    existing = find_existing(root, paper, registration)
     original = (
         existing.read_bytes() if existing else (root / "_template/_template_paper.md").read_bytes()
     )
     meta = frontmatter(original)
+    if registration:
+        if meta.get("zotero_key") and (
+            meta.get("zotero_key") != registration.key
+            or meta.get("zotero_library") != registration.library
+        ):
+            raise ValueError("Existing Zotero association differs; no automatic replacement")
+        body = body.replace(
+            "## Overview", f"## Overview\n\n[Open in Zotero]({registration.uri})", 1
+        )
     text = original.decode("utf-8-sig")
     if text.count(BEGIN) != 1 or text.count(END) != 1:
         raise ValueError(
@@ -171,6 +189,8 @@ def export_note(
     }
     if paper.doi:
         fields["doi"] = paper.doi
+    if registration:
+        fields.update(registration.note_fields())
     body_path = workspace / "reviewed-analysis.md"
     body_path.write_text(body, encoding="utf-8")
     metadata = workspace / "verified-fields.json"

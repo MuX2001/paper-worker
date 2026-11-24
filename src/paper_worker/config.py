@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
 
 class ZoteroConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", hide_input_in_errors=True)
+    mode: Literal["local", "web"] = "local"
     library_id: str = ""
     library_type: Literal["user", "group"] = "user"
     api_key: SecretStr = SecretStr("")
@@ -16,7 +17,7 @@ class ZoteroConfig(BaseModel):
 
     @property
     def enabled(self) -> bool:
-        return bool(self.library_id and self.api_key.get_secret_value())
+        return self.mode == "local" or bool(self.library_id and self.api_key.get_secret_value())
 
 
 class SupabaseConfig(BaseModel):

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from jinja2 import Environment, StrictUndefined
 
-from .arxiv_client import base_id, normalize_arxiv_id
 from .config import ZoteroConfig
 from .schemas import PaperAnalysis, PaperMetadata
 
@@ -29,64 +28,30 @@ def render_analysis(paper: PaperMetadata, analysis: PaperAnalysis) -> str:
 
 
 def export_obsidian(
-    paper: PaperMetadata, analysis: PaperAnalysis, directory: Path, workspace: Path | None = None
+    paper: PaperMetadata,
+    analysis: PaperAnalysis,
+    directory: Path,
+    workspace: Path | None = None,
+    registration=None,
 ) -> Path:
     from .athena import export_note
 
-    return export_note(paper, analysis, directory, render_analysis(paper, analysis), workspace)
+    return export_note(
+        paper,
+        analysis,
+        directory,
+        render_analysis(paper, analysis),
+        workspace,
+        registration=registration,
+    )
 
 
 def export_zotero(
     paper: PaperMetadata, analysis: PaperAnalysis, config: ZoteroConfig, client=None
 ) -> str:
-    if not config.enabled:
-        raise ValueError("Zotero Library ID and API Key are required")
-    if client is None:
-        from pyzotero import zotero
+    """Compatibility wrapper; analysis is intentionally not sent to Zotero."""
+    from .zotero_sync import _register_web, register_paper
 
-        client = zotero.Zotero(
-            config.library_id, config.library_type, config.api_key.get_secret_value()
-        )
-    canonical = base_id(paper.arxiv_id)
-    # Fulltext search includes Extra; paginate before exact matching to avoid false duplicates.
-    items = client.everything(client.items(q=canonical, qmode="everything"))
-    for item in items:
-        data = item.get("data", {})
-        values = [data.get("url", ""), data.get("archiveID", "")]
-        values.extend(re.findall(r"(?im)^arxiv:\s*(\S+)", data.get("extra", "")))
-        for value in values:
-            try:
-                if base_id(normalize_arxiv_id(value)) == canonical:
-                    return item["key"]
-            except ValueError:
-                continue
-    template = client.item_template("preprint")
-    template.update(
-        {
-            "title": paper.title,
-            "abstractNote": paper.abstract,
-            "url": paper.url,
-            "date": paper.published[:10],
-            "repository": "arXiv",
-            "archiveID": canonical,
-            "extra": f"arXiv: {canonical}",
-            "creators": [{"creatorType": "author", "name": name} for name in paper.authors],
-            "tags": [
-                {"tag": tag}
-                for tag in analysis.tags
-                + [f"code:{analysis.code_status}"]
-                + (["hype-warning"] if analysis.hype_flag else [])
-            ],
-        }
-    )
-    if config.collection_key:
-        template["collections"] = [config.collection_key]
-    response = client.create_items([template])
-    if response.get("failed"):
-        raise RuntimeError(f"Zotero rejected item: {response['failed']}")
-    key = response.get("success", {}).get("0")
-    if not key:
-        key = response.get("successful", {}).get("0", {}).get("key")
-    if not key:
-        raise RuntimeError("Zotero did not return a created item key")
-    return key
+    if client is not None:
+        return _register_web(paper, config, lambda text: None, client=client).key
+    return register_paper(paper, config).key

@@ -4,6 +4,7 @@ codex_command: codex exec --full-auto
 codex_timeout: 900
 github_token: ''
 zotero:
+  mode: local
   library_id: ''
   library_type: user
   api_key: ''

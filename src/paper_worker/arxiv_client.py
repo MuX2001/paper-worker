@@ -29,7 +29,7 @@ def base_id(value: str) -> str:
     return re.sub(r"v\d+$", "", normalize_arxiv_id(value))
 
 
-def fetch_paper(arxiv_id: str, workspace: Path, client: httpx.Client) -> tuple[PaperMetadata, Path]:
+def fetch_metadata(arxiv_id: str, client: httpx.Client) -> PaperMetadata:
     response = client.get("https://export.arxiv.org/api/query", params={"id_list": arxiv_id})
     response.raise_for_status()
     ns = {"a": "http://www.w3.org/2005/Atom"}
@@ -54,6 +54,15 @@ def fetch_paper(arxiv_id: str, workspace: Path, client: httpx.Client) -> tuple[P
         pdf_url=f"https://arxiv.org/pdf/{resolved_id}",
         doi=entry.findtext("{http://arxiv.org/schemas/atom}doi", ""),
     )
+    return metadata
+
+
+def fetch_paper(arxiv_id: str, workspace: Path, client: httpx.Client) -> tuple[PaperMetadata, Path]:
+    metadata = fetch_metadata(arxiv_id, client)
+    return metadata, download_pdf(metadata, workspace, client)
+
+
+def download_pdf(metadata: PaperMetadata, workspace: Path, client: httpx.Client) -> Path:
     workspace.mkdir(parents=True, exist_ok=True)
     pdf_path = workspace / "paper.pdf"
     response = client.get(metadata.pdf_url)
@@ -61,7 +70,7 @@ def fetch_paper(arxiv_id: str, workspace: Path, client: httpx.Client) -> tuple[P
     if not response.content.startswith(b"%PDF-"):
         raise ValueError("arXiv download is not a PDF")
     pdf_path.write_bytes(response.content)
-    return metadata, pdf_path
+    return pdf_path
 
 
 def extract_text(pdf_path: Path) -> tuple[str, str]:

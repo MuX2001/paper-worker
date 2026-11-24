@@ -61,7 +61,8 @@ def test_json_extraction(analysis):
 
 def test_core_pipeline(tmp_path, paper, analysis):
     with (
-        patch("paper_worker.pipeline.fetch_paper", return_value=(paper, tmp_path / "paper.pdf")),
+        patch("paper_worker.pipeline.fetch_metadata", return_value=paper),
+        patch("paper_worker.pipeline.download_pdf", return_value=tmp_path / "paper.pdf"),
         patch("paper_worker.pipeline.extract_text", return_value=("full text", "link text")),
         patch("paper_worker.pipeline.fetch_repo_context", return_value=None),
         patch("paper_worker.pipeline.run_codex", return_value=analysis),

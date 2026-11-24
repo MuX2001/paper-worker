@@ -82,7 +82,7 @@ def test_config_roundtrip_and_secret_errors(tmp_path):
     assert restored.github_token.get_secret_value() == "token"
     assert restored.obsidian_vault_dir == tmp_path / "notes"
     with pytest.raises(ValueError) as caught:
-        Config(zotero={"api_key": "super-secret"})
+        Config(zotero={"mode": "web", "api_key": "super-secret"})
     assert "super-secret" not in str(caught.value)
 
 

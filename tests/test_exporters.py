@@ -27,10 +27,11 @@ def test_zotero_create_and_duplicate(paper, analysis):
     client.everything.return_value = []
     client.item_template.return_value = {}
     client.create_items.return_value = {"success": {"0": "ITEM123"}, "failed": {}}
+    client.item.return_value = {"key": "ITEM123", "data": {"title": paper.title}}
     config = ZoteroConfig(library_id="123", api_key="secret")
     assert export_zotero(paper, analysis, config, client) == "ITEM123"
     payload = client.create_items.call_args.args[0][0]
-    assert {"tag": "code:no_repo"} in payload["tags"]
+    assert payload["tags"] == []
     assert payload["extra"] == "arXiv: 1706.03762"
     client.reset_mock()
     client.everything.return_value = [{"key": "EXISTING", "data": {"extra": "arXiv: 1706.03762v3"}}]

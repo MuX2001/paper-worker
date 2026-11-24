@@ -1,6 +1,6 @@
 # paper-worker
 
-输入 arXiv URL / ID，在本地完成论文下载、GitHub 预审、Codex 结构化分析、Obsidian 笔记归档及可选 Zotero 同步。支持 CLI、Tkinter GUI 和可选 Supabase 任务队列。
+输入 arXiv URL / ID，先注册或复用 Zotero 书目条目，再下载分析论文，最后写入带 Zotero 来源链接的 Obsidian 笔记。书目注册也可独立执行，无需论文分析。支持 CLI、Tkinter GUI 和可选 Supabase 任务队列。
 
 ## 安装
 
@@ -19,6 +19,7 @@ macOS / Linux 使用 `.venv/bin/python` 和 `.venv/bin/paper-worker`。不需要
 
 ```powershell
 .venv/Scripts/paper-worker.exe run https://arxiv.org/abs/1706.03762 --no-zotero
+.venv/Scripts/paper-worker.exe sync-zotero https://arxiv.org/abs/1706.03762
 .venv/Scripts/paper-worker.exe run 1706.03762 --no-obsidian --no-zotero
 .venv/Scripts/paper-worker.exe poll --limit 3
 .venv/Scripts/paper-worker.exe gui
@@ -46,9 +47,13 @@ PDF 同时抽取成 `paper.txt`，避免依赖 Codex 直接解析 PDF。GitHub �
 
 ## Zotero
 
-在 Settings 填写 Library ID、Library Type (`user` / `group`) 和 API Key，Collection Key 可选。个人 Library ID 和 API key 可在 [Zotero API 设置](https://www.zotero.org/settings/keys) 获取，key 需具有目标库写入权限。**桌面 Zotero 已启动不代表 Web API 已配置**。
+默认 `zotero.mode: local`，直接连接本机 Zotero。保持 Zotero 开启并启用本地 API；个人库 ID 可留空（使用本地 `users/0`），不需要云端 API key。需要创建条目时，Zotero 会弹出原生写入授权窗口。授权 key 仅保存在本次调用的内存中，不写入配置、日志或笔记。已有匹配条目直接复用，不触发写入授权。群组库需填写 group ID。
 
-未配置时跳过并记录原因。配置后创建 `preprint` 条目，保存 arXiv URL、作者、摘要、日期和标签，含 `code:<status>` 与可选 `hype-warning`。创建前检索并精确匹配 arXiv ID（忽略版本号）；已存在条目保持不变。Web API 写入后由 Zotero 自己的同步机制同步至桌面。不会自动上传 PDF。
+独立命令 `sync-zotero <arxiv_url_or_id>`，或 GUI 的 **Sync to Zotero Only**，只获取书目元数据、查重、注册条目并返回 Zotero 链接；不下载 PDF、不访问 GitHub、不调用 Codex、不创建 Obsidian 笔记。注册保存标题、作者、摘要、来源和日期等书目字段，不发送分析正文、代码审查结论或分析标签。
+
+完整 `run` 流程同样先注册 Zotero，再进行论文分析，最后写 Obsidian。笔记的书目字段优先采用 Zotero 返回数据，并写入 `zotero_library`、`zotero_key`、`zotero_uri`、`zotero_status: linked`，Overview 中包含 **Open in Zotero** 链接。后续分析失败不会回滚已经成功注册的 Zotero 条目；重跑时先查重复用。勾选同步却连接失败时会停止，不再静默生成缺少关联的笔记；显式 `--no-zotero` 仍允许跳过注册。
+
+可选 `zotero.mode: web` 才需要 Library ID、Library Type 和云端 API Key。不会自动上传 PDF；单独书目注册与附件存储是不同操作。
 
 ## Supabase（可选）
 
@@ -71,7 +76,7 @@ worker 崩溃后，确认进程已停止，再将该任务重置为 `pending` �
 
 测试默认不调用外部服务或 Codex。覆盖 arXiv 解析与 HTTP、PDF 换行链接、GitHub API、Codex JSON 提取及重试、配置、Jinja2/YAML、Zotero 去重、队列领取/失败与 CLI/GUI。无显示器的环境会跳过 GUI 测试；Windows 本机可直接运行。
 
-提示词位于 `src/paper_worker/prompts/`，运行时读取 Athena 的分析规范及共享模板。`src/paper_worker/templates/analysis_summary.md.j2` 仅提供缺少完整 `note_body` 时的未完成分析区域，不定义笔记外壳；旧中文摘要需要重新生成英文。JSON 增加 `paper_type` 和 `note_body`，其他结构化字段继续用于归档与 Zotero 标签。arXiv 下载固定到 API 返回的确切版本。其余模块与 `PROJECT_PLAN.md` 对应。
+提示词位于 `src/paper_worker/prompts/`，运行时读取 Athena 的分析规范及共享模板。`src/paper_worker/templates/analysis_summary.md.j2` 仅提供缺少完整 `note_body` 时的未完成分析区域，不定义笔记外壳；旧中文摘要需要重新生成英文。JSON 增加 `paper_type` 和 `note_body`，其他结构化字段仅用于分析归档，不传给 Zotero。arXiv 下载固定到 API 返回的确切版本。其余模块与 `PROJECT_PLAN.md` 对应。
 
 Git 默认分支为 `main`。尚未指定远端，上传时可自行添加：
 

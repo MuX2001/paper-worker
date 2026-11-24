@@ -48,6 +48,18 @@ def poll(limit: int = typer.Option(3, min=1), config: Path = Path("config.yaml")
         raise typer.Exit(1)
 
 
+@app.command("sync-zotero")
+def sync_zotero_command(arxiv_url_or_id: str, config: Path = Path("config.yaml")):
+    """Register bibliography only: no Codex, GitHub, PDF download or note generation."""
+    from .zotero_sync import sync_zotero
+
+    try:
+        sync_zotero(arxiv_url_or_id, load_config(config), log=typer.echo)
+    except Exception as exc:
+        typer.echo(f"Zotero error: {exc}", err=True)
+        raise typer.Exit(1) from exc
+
+
 @app.command()
 def gui(config: Path = Path("config.yaml")):
     """Open the desktop runner and settings."""

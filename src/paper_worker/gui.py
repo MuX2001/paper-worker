@@ -10,6 +10,7 @@ from tkinter.scrolledtext import ScrolledText
 from .config import Config, load_config, save_config
 from .pipeline import run_pipeline
 from .supabase_queue import poll_queue
+from .zotero_sync import sync_zotero
 
 
 def create_root() -> tk.Tk:
@@ -60,6 +61,10 @@ class PaperWorkerApp:
         actions.pack(fill="x", pady=12)
         self.run_button = ttk.Button(actions, text="Run Paper", command=lambda: self.start(False))
         self.run_button.pack(side="left")
+        self.sync_button = ttk.Button(
+            actions, text="Sync to Zotero Only", command=lambda: self.start(False, sync_only=True)
+        )
+        self.sync_button.pack(side="left", padx=10)
         self.poll_button = ttk.Button(
             actions, text="Poll Supabase Queue", command=lambda: self.start(True)
         )
@@ -74,6 +79,7 @@ class PaperWorkerApp:
             "obsidian_vault_dir": str(self.config.obsidian_vault_dir),
             "codex_command": self.config.codex_command,
             "github_token": self.config.github_token.get_secret_value(),
+            "mode": self.config.zotero.mode,
             "library_id": self.config.zotero.library_id,
             "library_type": self.config.zotero.library_type,
             "api_key": self.config.zotero.api_key.get_secret_value(),
@@ -85,6 +91,7 @@ class PaperWorkerApp:
             "Obsidian Vault Directory",
             "Codex CLI Command",
             "GitHub Token",
+            "Zotero Connection",
             "Zotero Library ID",
             "Zotero Library Type",
             "Zotero API Key",
@@ -97,9 +104,12 @@ class PaperWorkerApp:
             ttk.Label(settings_tab, text=label).grid(row=row, column=0, sticky="w", pady=6)
             variable = tk.StringVar(value=value)
             self.fields[key] = variable
-            if key == "library_type":
+            if key in {"library_type", "mode"}:
                 widget = ttk.Combobox(
-                    settings_tab, textvariable=variable, values=["user", "group"], state="readonly"
+                    settings_tab,
+                    textvariable=variable,
+                    values=(["user", "group"] if key == "library_type" else ["local", "web"]),
+                    state="readonly",
                 )
             else:
                 widget = ttk.Entry(
@@ -113,12 +123,12 @@ class PaperWorkerApp:
                     row=row, column=2
                 )
         self.save_button = ttk.Button(settings_tab, text="Save Settings", command=self.save)
-        self.save_button.grid(row=10, column=1, sticky="w", padx=8, pady=12)
+        self.save_button.grid(row=11, column=1, sticky="w", padx=8, pady=12)
         ttk.Label(
             settings_tab,
-            text="Zotero sync uses Web API credentials, even when the desktop app is open.",
+            text="Local: keep Zotero open; personal Library ID may be blank. Writes use Zotero's approval dialog. Web mode requires an API key.",
             wraplength=580,
-        ).grid(row=11, column=0, columnspan=3, sticky="w")
+        ).grid(row=12, column=0, columnspan=3, sticky="w")
         self.refresh_buttons()
         self.after_id = root.after(100, self.drain_messages)
 
@@ -132,7 +142,7 @@ class PaperWorkerApp:
             data = self.config.model_dump()
             for key in ("obsidian_vault_dir", "codex_command", "github_token"):
                 data[key] = self.fields[key].get().strip()
-            for key in ("library_id", "library_type", "api_key", "collection_key"):
+            for key in ("mode", "library_id", "library_type", "api_key", "collection_key"):
                 data["zotero"][key] = self.fields[key].get().strip()
             data["supabase"] = {
                 "url": self.fields["supabase_url"].get().strip(),
@@ -153,12 +163,13 @@ class PaperWorkerApp:
 
     def refresh_buttons(self):
         self.run_button.configure(state="disabled" if self.busy else "normal")
+        self.sync_button.configure(state="disabled" if self.busy else "normal")
         self.poll_button.configure(
             state="normal" if self.config.supabase.enabled and not self.busy else "disabled"
         )
         self.save_button.configure(state="disabled" if self.busy else "normal")
 
-    def start(self, polling: bool):
+    def start(self, polling: bool, sync_only: bool = False):
         if self.busy:
             return
         value = self.paper_input.get().strip()
@@ -178,7 +189,10 @@ class PaperWorkerApp:
                 def logger(text):
                     self.messages.put(("log", str(text)))
 
-                if polling:
+                if sync_only:
+                    sync_zotero(value, config, log=logger)
+                    self.messages.put(("done", "Zotero synchronized"))
+                elif polling:
                     result = poll_queue(config, log=logger, **options)
                     self.messages.put(
                         (
