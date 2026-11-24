@@ -82,7 +82,7 @@ class PaperWorkerApp:
             "supabase_key": self.config.supabase.key.get_secret_value(),
         }
         labels = [
-            "Obsidian Output Directory",
+            "Obsidian Vault Directory",
             "Codex CLI Command",
             "GitHub Token",
             "Zotero Library ID",

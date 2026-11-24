@@ -6,17 +6,20 @@ from paper_worker.config import ZoteroConfig
 from paper_worker.exporters import export_obsidian, export_zotero
 
 
-def test_note(tmp_path, paper, analysis):
-    path = export_obsidian(paper, analysis, tmp_path)
+def test_note(athena_vault, paper, analysis):
+    path = export_obsidian(paper, analysis, athena_vault)
     text = path.read_text(encoding="utf-8")
     metadata = yaml.safe_load(text.split("---", 2)[1])
-    assert metadata["arxiv_id"] == paper.arxiv_id
-    assert metadata["hype_flag"] is False
-    assert metadata["tags"] == analysis.tags
+    assert metadata["arxiv_id"] == "1706.03762"
+    assert metadata["analysis_status"] == "incomplete"
+    assert metadata["status"] == "unread"
+    assert "tags" not in metadata
+    assert metadata["analysis_version"] == "v1"
+    assert path.parent == athena_vault / "notes-literature/papers"
     assert analysis.tldr in text
     paper.arxiv_id = "1706.03762v2"
-    assert export_obsidian(paper, analysis, tmp_path) == path
-    assert len(list(tmp_path.glob("*.md"))) == 1
+    assert export_obsidian(paper, analysis, athena_vault) == path
+    assert len(list(path.parent.glob("*.md"))) == 1
 
 
 def test_zotero_create_and_duplicate(paper, analysis):

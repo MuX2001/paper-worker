@@ -26,7 +26,11 @@ macOS / Linux 使用 `.venv/bin/python` 和 `.venv/bin/paper-worker`。不需要
 
 所有命令支持 `--config <path>`；默认读取当前目录的 `config.yaml`。GUI 的 Settings 保存配置，Run 页按保存的配置执行。运行期间禁止重复启动与关闭，日志通过线程安全队列回到 UI 主线程。
 
-`obsidian_vault_dir` 是笔记输出目录，可设为 vault 内专用子目录，如 `Athena/Papers/arXiv`。生成文件采用 `arxiv-<ID>.md`，同一论文的不同版本更新同一份笔记。生成笔记会被重新渲染；个人批注建议放在另一份笔记中并使用 wikilink 引用。
+`obsidian_vault_dir` 指向 Athena vault 根目录。程序读取 vault 的 `_template/_template_paper.md`，不另建一份生产笔记模板。新论文进入 `notes-literature/papers`，综述进入 `notes-literature/surveys`；全库按 arXiv/DOI 及经作者、年份确认的标题查重，已有笔记保留原路径。
+
+存储正文默认英文，无 H1、无 tags，保留 `up: "[[Literature MOC]]"` 和紧随 frontmatter 的 `up:: [[Literature MOC]]`。新笔记为 `status: unread`。生成分析保持 `analysis_status: incomplete`，不会仅凭标题齐全就标为完成。
+
+只更新 `paper-analysis:begin/end` 之间的内容及已确认的书目信息、`analysis_*` 字段。个人笔记、阅读状态、分类、topics、projects、aliases 和未知属性保留。调用现有 `__resource/paper-workflow/update_analysis.py`，使用 vault 外快照及预期哈希避免覆盖并发编辑；不额外运行独立验收校验。旧笔记缺少管理标记、多份笔记匹配或已有完整分析时停止覆盖，需要单独处理迁移或替换。
 
 缓存按论文和运行 ID 隔离，保存 PDF、全文、元数据、仓库上下文、schema 和分析 JSON。导出失败时可从缓存检查已经完成的分析。缓存不会自动清理。
 
@@ -67,7 +71,7 @@ worker 崩溃后，确认进程已停止，再将该任务重置为 `pending` �
 
 测试默认不调用外部服务或 Codex。覆盖 arXiv 解析与 HTTP、PDF 换行链接、GitHub API、Codex JSON 提取及重试、配置、Jinja2/YAML、Zotero 去重、队列领取/失败与 CLI/GUI。无显示器的环境会跳过 GUI 测试；Windows 本机可直接运行。
 
-提示词和模板位于 `src/paper_worker/prompts/` 与 `src/paper_worker/templates/`，随 wheel 打包，安装后无需依赖仓库工作目录。其余模块与 `PROJECT_PLAN.md` 对应。
+提示词位于 `src/paper_worker/prompts/`，运行时读取 Athena 的分析规范及共享模板。`src/paper_worker/templates/analysis_summary.md.j2` 仅提供缺少完整 `note_body` 时的未完成分析区域，不定义笔记外壳；旧中文摘要需要重新生成英文。JSON 增加 `paper_type` 和 `note_body`，其他结构化字段继续用于归档与 Zotero 标签。arXiv 下载固定到 API 返回的确切版本。其余模块与 `PROJECT_PLAN.md` 对应。
 
 Git 默认分支为 `main`。尚未指定远端，上传时可自行添加：
 

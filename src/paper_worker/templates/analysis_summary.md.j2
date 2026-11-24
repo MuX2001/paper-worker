@@ -1,0 +1,54 @@
+## Overview
+
+### Key Takeaways
+
+{{ analysis.tldr }}
+
+## Paper Analysis
+
+### Problem Formulation
+
+{{ analysis.problem }}
+
+### Method
+
+{% for detail in analysis.method_details %}- {{ detail }}
+{% endfor %}
+
+### Experimental Setup
+
+Datasets: {{ analysis.experiments.datasets | join(', ') }}
+
+### Results
+
+{{ analysis.experiments.key_results }}
+
+#### Internal Consistency & Claim Support
+
+{{ analysis.experiments.red_flags }}
+
+### Research Assets & Reproducibility
+
+Repository: {{ analysis.repo_url or 'Not located in the inspected sources.' }}
+
+Code status: {{ analysis.code_status }}
+
+| Paper module | Inspected path | Evidence status |
+| --- | --- | --- |
+{% for item in analysis.code_audit %}| {{ item.paper_module | table_cell }} | {{ item.file_path | table_cell }} | {{ item.status }} |
+{% endfor %}
+
+{% for asset in analysis.missing_assets %}- {{ asset }}
+{% endfor %}
+
+### Final Assessment
+
+{% if analysis.hype_flag %}{{ analysis.hype_reason }}
+{% else %}A full evidence-grounded assessment has not yet been reviewed.
+{% endif %}
+
+### Sources & Coverage
+
+Primary source: [arXiv {{ paper.arxiv_id }}]({{ paper.pdf_url }}).
+
+This is a partial summary, not a complete analysis under specification 1.1. The full applicable dimensions, source locators, equations and visual evidence still require review.

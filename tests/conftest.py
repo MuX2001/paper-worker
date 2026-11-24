@@ -1,3 +1,6 @@
+import shutil
+from pathlib import Path
+
 import pytest
 
 from paper_worker.schemas import PaperAnalysis, PaperMetadata
@@ -6,7 +9,7 @@ from paper_worker.schemas import PaperAnalysis, PaperMetadata
 @pytest.fixture
 def analysis():
     return PaperAnalysis(
-        tldr="用稀疏注意力降低计算成本",
+        tldr="Sparse attention reduces compute",
         problem="Dense attention is expensive",
         method_details=["Sparse attention"],
         experiments={"datasets": ["Example"], "key_results": "2x speedup", "red_flags": "None"},
@@ -30,3 +33,10 @@ def paper():
         url="https://arxiv.org/abs/1706.03762v1",
         pdf_url="https://arxiv.org/pdf/1706.03762v1",
     )
+
+
+@pytest.fixture
+def athena_vault(tmp_path):
+    vault = tmp_path / "Athena"
+    shutil.copytree(Path(__file__).parent / "fixtures/athena", vault)
+    return vault

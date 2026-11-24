@@ -2,6 +2,8 @@
 
 Verified locally on Windows / Python 3.13 on 2026-11-24.
 
+Later Athena alignment: the user supplied the read-only paper-analysis workflow, then requested no additional validation. The exporter now reads the shared vault template, uses English managed analysis, preserves personal content, and uses canonical literature folders. Standalone acceptance validation has been removed; optimistic-locking/protected-update safeguards remain. Prior evidence below describes the initial implementation and is not content-level acceptance of the revised workflow.
+
 | Requirement | Evidence |
 | --- | --- |
 | CLI run / poll / gui | Typer commands implemented; run flags and error exit tested |

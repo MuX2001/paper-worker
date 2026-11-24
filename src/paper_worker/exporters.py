@@ -1,10 +1,7 @@
-import os
 import re
-import tempfile
 from importlib.resources import files
 from pathlib import Path
 
-import yaml
 from jinja2 import Environment, StrictUndefined
 
 from .arxiv_client import base_id, normalize_arxiv_id
@@ -12,7 +9,11 @@ from .config import ZoteroConfig
 from .schemas import PaperAnalysis, PaperMetadata
 
 
-def render_note(paper: PaperMetadata, analysis: PaperAnalysis) -> str:
+def render_analysis(paper: PaperMetadata, analysis: PaperAnalysis) -> str:
+    if analysis.note_body:
+        return analysis.note_body
+    if re.search(r"[\u4e00-\u9fff]", analysis.tldr):
+        raise ValueError("Legacy Chinese summary must be regenerated in English for Athena")
     environment = Environment(
         undefined=StrictUndefined, autoescape=False, keep_trailing_newline=True
     )
@@ -20,37 +21,19 @@ def render_note(paper: PaperMetadata, analysis: PaperAnalysis) -> str:
         "\n", "<br>"
     )
     template = environment.from_string(
-        files("paper_worker").joinpath("templates/obsidian_note.md.j2").read_text(encoding="utf-8")
+        files("paper_worker")
+        .joinpath("templates/analysis_summary.md.j2")
+        .read_text(encoding="utf-8")
     )
-    frontmatter = yaml.safe_dump(
-        {
-            "arxiv_id": paper.arxiv_id,
-            "title": paper.title,
-            "code_status": analysis.code_status,
-            "hype_flag": analysis.hype_flag,
-            "tags": analysis.tags,
-            "repo_url": analysis.repo_url,
-        },
-        allow_unicode=True,
-        sort_keys=False,
-    )
-    return template.render(paper=paper, analysis=analysis, frontmatter=frontmatter)
+    return template.render(paper=paper, analysis=analysis)
 
 
-def export_obsidian(paper: PaperMetadata, analysis: PaperAnalysis, directory: Path) -> Path:
-    directory = directory.expanduser().resolve()
-    directory.mkdir(parents=True, exist_ok=True)
-    # Stable ID avoids duplicate files when a title changes between arXiv versions.
-    filename = "arxiv-" + re.sub(r"[^a-zA-Z0-9._-]", "_", base_id(paper.arxiv_id)) + ".md"
-    destination = directory / filename
-    fd, temporary = tempfile.mkstemp(dir=directory, suffix=".tmp")
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(render_note(paper, analysis))
-        os.replace(temporary, destination)
-    finally:
-        Path(temporary).unlink(missing_ok=True)
-    return destination
+def export_obsidian(
+    paper: PaperMetadata, analysis: PaperAnalysis, directory: Path, workspace: Path | None = None
+) -> Path:
+    from .athena import export_note
+
+    return export_note(paper, analysis, directory, render_analysis(paper, analysis), workspace)
 
 
 def export_zotero(

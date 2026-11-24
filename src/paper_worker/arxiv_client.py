@@ -39,14 +39,20 @@ def fetch_paper(arxiv_id: str, workspace: Path, client: httpx.Client) -> tuple[P
     entry_id = entry.findtext("a:id", "", ns)
     if "/errors" in entry_id:
         raise ValueError("arXiv returned an API error")
+    resolved_id = normalize_arxiv_id(entry_id)
+    if base_id(resolved_id) != base_id(arxiv_id):
+        raise ValueError("arXiv returned a different paper identity")
+    if re.search(r"v\d+$", arxiv_id) and resolved_id != arxiv_id:
+        raise ValueError("arXiv returned a different revision than requested")
     metadata = PaperMetadata(
-        arxiv_id=arxiv_id,
+        arxiv_id=resolved_id,
         title=" ".join(entry.findtext("a:title", "", ns).split()),
         authors=[a.findtext("a:name", "", ns) for a in entry.findall("a:author", ns)],
         abstract=" ".join(entry.findtext("a:summary", "", ns).split()),
         published=entry.findtext("a:published", "", ns),
-        url=f"https://arxiv.org/abs/{arxiv_id}",
-        pdf_url=f"https://arxiv.org/pdf/{arxiv_id}",
+        url=f"https://arxiv.org/abs/{resolved_id}",
+        pdf_url=f"https://arxiv.org/pdf/{resolved_id}",
+        doi=entry.findtext("{http://arxiv.org/schemas/atom}doi", ""),
     )
     workspace.mkdir(parents=True, exist_ok=True)
     pdf_path = workspace / "paper.pdf"

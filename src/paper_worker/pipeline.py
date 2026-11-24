@@ -23,6 +23,10 @@ class PipelineResult:
 def run_pipeline(
     value: str, config: Config, *, obsidian: bool = True, zotero: bool = True, log=print
 ) -> PipelineResult:
+    if obsidian:
+        from .athena import vault_root
+
+        vault_root(config.obsidian_vault_dir)
     arxiv_id = normalize_arxiv_id(value)
     workspace = (
         config.cache_dir.expanduser() / arxiv_id.replace("/", "_") / uuid.uuid4().hex[:12]
@@ -58,7 +62,7 @@ def run_pipeline(
         from .exporters import export_obsidian
 
         log("4/6 Writing Obsidian note")
-        result.note_path = export_obsidian(metadata, analysis, config.obsidian_vault_dir)
+        result.note_path = export_obsidian(metadata, analysis, config.obsidian_vault_dir, workspace)
         log(f"Obsidian: {result.note_path}")
     if zotero:
         if config.zotero.enabled:

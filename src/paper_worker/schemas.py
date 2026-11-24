@@ -31,6 +31,24 @@ class PaperAnalysis(StrictModel):
     missing_assets: list[str]
     hype_flag: bool
     hype_reason: str = ""
+    paper_type: Literal["empirical", "theoretical", "survey", "mixed"] = "empirical"
+    note_body: str = ""
+
+    @field_validator("note_body")
+    @classmethod
+    def validate_note_body(cls, body: str) -> str:
+        import re
+
+        if body and ("## Overview" not in body or "## Paper Analysis" not in body):
+            raise ValueError("note_body requires Overview and Paper Analysis sections")
+        if (
+            re.search(r"^# |^tags?::|^## Personal Notes", body, re.M)
+            or "<!-- paper-analysis:" in body
+        ):
+            raise ValueError(
+                "note_body must contain only the managed analysis: no H1, tags, personal notes or markers"
+            )
+        return body
 
     @field_validator("tags")
     @classmethod
@@ -58,3 +76,4 @@ class PaperMetadata(BaseModel):
     published: str
     url: str
     pdf_url: str
+    doi: str = ""

@@ -38,7 +38,7 @@ def paper_pdf():
     return buffer.getvalue()
 
 
-def test_full_pipeline_passes_repository_evidence_and_exports(tmp_path, analysis):
+def test_full_pipeline_passes_repository_evidence_and_exports(tmp_path, athena_vault, analysis):
     analysis.repo_url = "https://github.com/example/research"
     analysis.code_status = "partial"
     from paper_worker.schemas import CodeAuditItem
@@ -83,16 +83,25 @@ def test_full_pipeline_passes_repository_evidence_and_exports(tmp_path, analysis
     client = httpx.Client(transport=httpx.MockTransport(http_handler))
     config = Config(
         cache_dir=tmp_path / "cache",
-        obsidian_vault_dir=tmp_path / "notes",
+        obsidian_vault_dir=athena_vault,
         codex_command="codex exec",
     )
+    import subprocess
+
+    real_run = subprocess.run
+
+    def process_dispatch(args, **kwargs):
+        if "--output-schema" in args:
+            return codex_process(args, **kwargs)
+        return real_run(args, **kwargs)
+
     with (
         patch("paper_worker.pipeline.httpx.Client", return_value=client),
-        patch("paper_worker.codex_runner.subprocess.run", side_effect=codex_process),
+        patch("paper_worker.codex_runner.subprocess.run", side_effect=process_dispatch),
     ):
         result = run_pipeline("1706.03762", config, zotero=False)
     note = result.note_path.read_text(encoding="utf-8")
     assert "| Attention | model.py | unclear |" in note
-    assert "code_status: partial" in note
+    assert "Code status: partial" in note
     assert len(requests) == 6
     assert (result.workspace / "analysis.json").exists()
