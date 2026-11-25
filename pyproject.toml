@@ -21,7 +21,7 @@ paper-worker = "paper_worker.cli:app"
 where = ["src"]
 
 [tool.setuptools.package-data]
-paper_worker = ["prompts/*.txt"]
+paper_worker = ["prompts/*.txt", "defaults/*.md", "defaults/*.py"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

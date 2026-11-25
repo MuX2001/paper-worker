@@ -5,6 +5,20 @@ import pytest
 
 from paper_worker.athena import BEGIN, END, _helper, frontmatter
 from paper_worker.exporters import export_obsidian
+from paper_worker.writing_context import writing_context
+
+
+def test_empty_vault_uses_bundled_defaults(tmp_path, paper, analysis):
+    vault = tmp_path / "Research"
+    vault.mkdir()
+    path = export_obsidian(paper, analysis, vault)
+    assert "## Personal Notes" in path.read_text(encoding="utf-8")
+    assert "Literature MOC" not in path.read_text(encoding="utf-8")
+    assert "## Shared note structure" in writing_context(vault)
+    path.write_bytes(path.read_bytes() + b"My reading notes\n")
+    assert export_obsidian(paper, analysis, vault) == path
+    assert path.read_bytes().endswith(b"My reading notes\n")
+    assert list(vault.iterdir()) == [vault / "notes-literature"]
 
 
 def test_protected_content_and_existing_path(athena_vault, paper, analysis, tmp_path):
@@ -60,12 +74,14 @@ def test_no_downgrade_of_complete_analysis(athena_vault, paper, analysis):
     assert path.read_bytes() == original
 
 
-def test_survey_folder_and_shared_template(athena_vault, paper, analysis):
+def test_survey_folder_and_shared_template(athena_vault, paper, analysis, tmp_path, monkeypatch):
+    monkeypatch.setattr("paper_worker.athena.DEFAULTS", tmp_path / "no-defaults")
     (athena_vault / "unrelated.md").write_text(
         "---\n- plain list\n---\nUnrelated content", encoding="utf-8"
     )
     template = athena_vault / "_template/_template_paper.md"
     template.write_bytes(template.read_bytes() + b"Shared template custom footer\n")
+    assert "Shared template custom footer" in writing_context(athena_vault)
     analysis.paper_type = "survey"
     path = export_obsidian(paper, analysis, athena_vault)
     assert path.parent.name == "surveys"

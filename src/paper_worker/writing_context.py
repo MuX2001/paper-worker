@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from .athena import BEGIN, END, vault_root
+from .athena import BEGIN, END, paper_template, vault_root
 
 
 def writing_context(directory: Path) -> str:
@@ -17,7 +17,6 @@ def writing_context(directory: Path) -> str:
             "Full analysis specification",
             ".agents/skills/paper-analysis/references/analysis-spec.md",
         ),
-        ("Shared note structure", "_template/_template_paper.md"),
     )
     parts = [
         "The following are the user's writing requirements. Apply their scientific-writing "
@@ -30,6 +29,9 @@ def writing_context(directory: Path) -> str:
         if path.is_file():
             parts.append(f"\n## {label}\n{path.read_text(encoding='utf-8-sig')}")
 
+    parts.append(
+        "\n## Shared note structure\n" + paper_template(root).read_text(encoding="utf-8-sig")
+    )
     example = root / "notes-literature/papers/Attention Is All You Need.md"
     if example.is_file():
         text = example.read_text(encoding="utf-8-sig")

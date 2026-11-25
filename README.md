@@ -20,7 +20,7 @@ Invoke-Item '.\Paper Worker.lnk'
 
 | 字段 | 何时填写 | 值 |
 | --- | --- | --- |
-| `obsidian_vault_dir` | 写笔记时必填 | vault 根目录，需包含论文模板 `_template/_template_paper.md` 和工作流目录 `__resource/paper-workflow/` |
+| `obsidian_vault_dir` | 写笔记时必填 | vault 根目录。优先使用库内的 `_template/_template_paper.md` 和 `__resource/paper-workflow/update_analysis.py`，缺哪项就用内置的对应文件 |
 | `zotero.mode` / `zotero.library_type` | 选填 | 默认 `local` / `user`，可切换为 `web` / `group` |
 | `zotero.library_id` | Web 模式或群组库必填 | 用户或群组 ID |
 | `zotero.api_key` | Web 模式必填 | Zotero API key |

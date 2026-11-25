@@ -18,14 +18,22 @@ from .schemas import PaperAnalysis, PaperMetadata
 
 BEGIN = "<!-- paper-analysis:begin -->"
 END = "<!-- paper-analysis:end -->"
+DEFAULTS = Path(__file__).with_name("defaults")
 
 
 def vault_root(directory: Path) -> Path:
     directory = directory.expanduser().resolve()
     for root in (directory, *directory.parents):
-        if (root / "_template/_template_paper.md").is_file():
+        if (root / "_template/_template_paper.md").is_file() or (root / ".obsidian").is_dir():
             return root
-    raise ValueError("Configure an Athena vault containing _template/_template_paper.md")
+    if directory.is_dir():
+        return directory
+    raise ValueError(f"Choose an existing Obsidian vault directory: {directory}")
+
+
+def paper_template(root: Path) -> Path:
+    custom = root / "_template/_template_paper.md"
+    return custom if custom.exists() else DEFAULTS / "paper.md"
 
 
 def frontmatter(raw: bytes) -> dict:
@@ -113,8 +121,8 @@ def find_existing(root: Path, paper: PaperMetadata, registration=None) -> Path |
 
 def _helper(root: Path, script: str, args: list[str]) -> None:
     helper = root / "__resource/paper-workflow" / script
-    if not helper.is_file():
-        raise ValueError(f"Required Athena workflow helper is missing: {helper}")
+    if not helper.exists():
+        helper = DEFAULTS / script
     result = subprocess.run(
         [sys.executable, "-B", str(helper), *args],
         creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
@@ -138,9 +146,7 @@ def export_note(
 ) -> Path:
     root = vault_root(directory)
     existing = find_existing(root, paper, registration)
-    original = (
-        existing.read_bytes() if existing else (root / "_template/_template_paper.md").read_bytes()
-    )
+    original = (existing or paper_template(root)).read_bytes()
     meta = frontmatter(original)
     if registration:
         if meta.get("zotero_key") and (
