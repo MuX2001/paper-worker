@@ -5,6 +5,7 @@ import threading
 import tkinter as tk
 from pathlib import Path
 from tkinter import filedialog, messagebox, ttk
+from tkinter import font as tkfont
 from tkinter.scrolledtext import ScrolledText
 
 from .config import Config, load_config, save_config
@@ -16,6 +17,12 @@ from .zotero_sync import sync_zotero
 def create_root() -> tk.Tk:
     # Relocated Windows Python installs can lose their Tcl library search path.
     if sys.platform == "win32":
+        import ctypes
+
+        try:
+            ctypes.windll.shcore.SetProcessDpiAwareness(1)
+        except (AttributeError, OSError):
+            pass
         libraries = Path(sys.base_prefix) / "tcl"
         for variable, pattern, marker in (
             ("TCL_LIBRARY", "tcl8.*", "init.tcl"),
@@ -26,7 +33,15 @@ def create_root() -> tk.Tk:
                     if (path / marker).is_file():
                         os.environ[variable] = str(path)
                         break
-    return tk.Tk()
+    root = tk.Tk()
+    if sys.platform == "win32":
+        style = ttk.Style(root)
+        if "vista" in style.theme_names():
+            style.theme_use("vista")
+        for name in ("TkDefaultFont", "TkTextFont", "TkMenuFont"):
+            tkfont.nametofont(name, root=root).configure(family="Segoe UI")
+        tkfont.nametofont("TkFixedFont", root=root).configure(family="Consolas")
+    return root
 
 
 class PaperWorkerApp:
@@ -37,8 +52,6 @@ class PaperWorkerApp:
         self.messages = queue.Queue()
         self.busy = False
         root.title("paper-worker")
-        root.geometry("680x520")
-        root.minsize(620, 500)
         root.protocol("WM_DELETE_WINDOW", self.close)
         notebook = ttk.Notebook(root)
         notebook.pack(fill="both", expand=True, padx=10, pady=10)
@@ -71,7 +84,9 @@ class PaperWorkerApp:
         self.poll_button.pack(side="left", padx=10)
         self.status = tk.StringVar(value="Ready")
         ttk.Label(run_tab, textvariable=self.status).pack(anchor="w")
-        self.log_widget = ScrolledText(run_tab, wrap="word", state="disabled", height=16)
+        self.log_widget = ScrolledText(
+            run_tab, wrap="word", state="disabled", height=16, font="TkFixedFont"
+        )
         self.log_widget.pack(fill="both", expand=True, pady=(6, 0))
 
         self.fields = {}
@@ -117,7 +132,7 @@ class PaperWorkerApp:
                     textvariable=variable,
                     show="*" if key in {"github_token", "api_key", "supabase_key"} else "",
                 )
-            widget.grid(row=row, column=1, sticky="ew", padx=8)
+            widget.grid(row=row, column=1, sticky="ew", padx=8, pady=3)
             if key == "obsidian_vault_dir":
                 ttk.Button(settings_tab, text="Browse…", command=self.browse).grid(
                     row=row, column=2
@@ -129,6 +144,8 @@ class PaperWorkerApp:
             text="Local: keep Zotero open; personal Library ID may be blank. Writes use Zotero's approval dialog. Web mode requires an API key.",
             wraplength=580,
         ).grid(row=12, column=0, columnspan=3, sticky="w")
+        root.update_idletasks()
+        root.minsize(max(620, root.winfo_reqwidth()), max(500, root.winfo_reqheight()))
         self.refresh_buttons()
         self.after_id = root.after(100, self.drain_messages)
 
@@ -256,3 +273,32 @@ def launch_gui(config_path: Path):
             root.destroy()
         except tk.TclError:
             pass
+
+
+def main() -> None:
+    project = Path(__file__).resolve().parents[2]
+    if not (project / "pyproject.toml").is_file():
+        project = Path.home() / ".paper-worker"
+    launch_gui(project / "config.yaml")
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception:
+        if sys.platform != "win32":
+            raise
+        import ctypes
+        import traceback
+
+        details = traceback.format_exc()
+        try:
+            log_dir = Path(os.environ.get("LOCALAPPDATA") or Path.home()) / "paper-worker"
+            log_dir.mkdir(parents=True, exist_ok=True)
+            log_path = log_dir / "startup-error.log"
+            log_path.write_text(details, encoding="utf-8")
+            details = f"Startup failed. Details saved to:\n{log_path}"
+        except OSError:
+            pass
+        ctypes.windll.user32.MessageBoxW(None, details, "Paper Worker", 0x10)
+        sys.exit(1)

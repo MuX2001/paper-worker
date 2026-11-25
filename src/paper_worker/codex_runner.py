@@ -3,6 +3,7 @@ import os
 import shlex
 import shutil
 import subprocess
+import sys
 from importlib.resources import files
 from pathlib import Path
 
@@ -53,6 +54,7 @@ def run_codex(
     if "--full-auto" in args:
         help_result = subprocess.run(
             [args[0], "exec", "--help"],
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -114,6 +116,7 @@ def run_codex(
             invocation,
             input=prompt,
             cwd=workspace,
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             capture_output=True,
             text=True,
             encoding="utf-8",

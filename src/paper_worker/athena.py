@@ -117,6 +117,7 @@ def _helper(root: Path, script: str, args: list[str]) -> None:
         raise ValueError(f"Required Athena workflow helper is missing: {helper}")
     result = subprocess.run(
         [sys.executable, "-B", str(helper), *args],
+        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
         capture_output=True,
         text=True,
         encoding="utf-8",

@@ -1,4 +1,5 @@
 .venv/
+/Paper Worker.lnk
 __pycache__/
 *.py[cod]
 .pytest_cache/

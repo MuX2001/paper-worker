@@ -1,6 +1,7 @@
 import re
 import shutil
 import subprocess
+import sys
 from pathlib import Path
 
 
@@ -33,6 +34,7 @@ def render_figures(pdf: Path, text: str, log=print) -> list[Path]:
                 str(pdf),
                 str(prefix),
             ],
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
             capture_output=True,
             timeout=90,
             check=False,
