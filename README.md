@@ -1,10 +1,10 @@
 # paper-worker
 
-输入 arXiv 链接或 ID，先在 Zotero 创建或复用书目条目，再用 Codex 分析论文，将带 Zotero 链接的 Markdown 笔记写入 Athena。
+输入 arXiv 链接或 ID，先在 Zotero 创建或复用书目条目，再用 Codex 分析论文，将带 Zotero 链接的 Markdown 笔记写入你指定的 Obsidian vault。
 
 ## Quick Start
 
-在项目根目录打开 PowerShell，启动已启用本地 API 的 Zotero，并确认 Codex CLI 已登录。首次运行时在 GUI 的 Settings 选好 Athena 根目录并保存。
+在项目根目录打开 PowerShell，启动已启用本地 API 的 Zotero，并确认 Codex CLI 已登录。首次运行或 vault 改名后，在 GUI 的 Settings 中选择 vault 根目录并保存。
 
 ```powershell
 if (!(Test-Path '.venv')) { python -m venv .venv }
@@ -20,7 +20,7 @@ Invoke-Item '.\Paper Worker.lnk'
 
 | 字段 | 何时填写 | 值 |
 | --- | --- | --- |
-| `obsidian_vault_dir` | 写笔记时必填 | Athena 根目录 |
+| `obsidian_vault_dir` | 写笔记时必填 | vault 根目录，需包含论文模板 `_template/_template_paper.md` 和工作流目录 `__resource/paper-workflow/` |
 | `zotero.mode` / `zotero.library_type` | 选填 | 默认 `local` / `user`，可切换为 `web` / `group` |
 | `zotero.library_id` | Web 模式或群组库必填 | 用户或群组 ID |
 | `zotero.api_key` | Web 模式必填 | Zotero API key |
