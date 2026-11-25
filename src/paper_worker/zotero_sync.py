@@ -1,8 +1,8 @@
 """Bibliography registration independent of analysis, GitHub and Obsidian."""
 
 import re
-from dataclasses import dataclass, field
 import uuid
+from dataclasses import dataclass, field
 
 import httpx
 

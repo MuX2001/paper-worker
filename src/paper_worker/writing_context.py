@@ -6,7 +6,10 @@ from .athena import BEGIN, END, vault_root
 
 
 def writing_context(directory: Path) -> str:
-    root = vault_root(directory)
+    try:
+        root = vault_root(directory)
+    except ValueError:
+        return "No Athena writing example or vault-specific guidance was available."
     sources = (
         ("Vault writing and mathematical conventions", "AGENTS.md"),
         ("Paper workflow", ".agents/skills/paper-analysis/SKILL.md"),

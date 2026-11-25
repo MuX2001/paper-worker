@@ -1,5 +1,8 @@
 import base64
+import io
 import json
+import zipfile
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -10,6 +13,40 @@ from paper_worker.arxiv_client import fetch_paper
 from paper_worker.codex_runner import run_codex
 from paper_worker.config import Config, load_config, save_config
 from paper_worker.github_audit import fetch_repo_context
+from paper_worker.visual_evidence import render_figures
+
+
+def test_public_snapshot_on_rate_limit(tmp_path):
+    data = io.BytesIO()
+    with zipfile.ZipFile(data, "w") as archive:
+        archive.comment = b"a" * 40
+        archive.writestr("repo-head/model.py", "class Model: pass")
+
+    def handler(request):
+        if request.url.host == "api.github.com":
+            return httpx.Response(403, headers={"x-ratelimit-remaining": "0"})
+        assert "Authorization" not in request.headers
+        return httpx.Response(200, content=data.getvalue())
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        path = fetch_repo_context(["https://github.com/org/repo"], tmp_path, client, "token")
+    repo = json.loads(path.read_text(encoding="utf-8"))["candidate_repositories"][0]
+    assert repo["commit"] == "a" * 40
+    assert repo["sources"][0]["text"] == "class Model: pass"
+    assert "unavailable" in repo["open_issues_status"]
+
+
+def test_figure_pages_follow_caption_priority(tmp_path, monkeypatch):
+    def render(args, **kwargs):
+        Path(args[-1]).with_suffix(".png").touch()
+        return SimpleNamespace(returncode=0)
+
+    monkeypatch.setattr("paper_worker.visual_evidence.shutil.which", lambda _: "pdftoppm")
+    monkeypatch.setattr("paper_worker.visual_evidence.subprocess.run", render)
+    text = "".join(f"--- PDF page {i} ---\nFigure 1: caption\n" for i in range(1, 8))
+    text += "Table 2: another caption"
+    images = render_figures(tmp_path / "paper.pdf", text)
+    assert [image.stem for image in images] == [f"visual-page-{i}" for i in [1, 2, 3, 4, 5, 7]]
 
 
 def test_arxiv_http(tmp_path):
@@ -102,5 +139,8 @@ def test_github_rate_limit(tmp_path):
             )
         )
     ) as client:
-        with pytest.raises(RuntimeError, match="Configure github_token"):
-            fetch_repo_context(["https://github.com/o/r"], tmp_path, client)
+        output = fetch_repo_context(["https://github.com/o/r"], tmp_path, client)
+    repo = json.loads(output.read_text())["candidate_repositories"][0]
+    assert repo["url"] == "https://github.com/o/r"
+    assert "403" in repo["archive_status"]
+    assert "rate limit" in repo["open_issues_status"]

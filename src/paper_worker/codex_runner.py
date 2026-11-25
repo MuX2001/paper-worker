@@ -84,15 +84,29 @@ def run_codex(
     from .writing_context import writing_context
 
     prompt += "\n" + writing_context(config.obsidian_vault_dir)
+    images = []
+    if pdf.is_file():
+        from .visual_evidence import render_figures
+
+        images = render_figures(pdf, (workspace / "paper.txt").read_text(encoding="utf-8"), log)
+    prompt += "\nAttached images in order (physical PDF pages): " + ", ".join(
+        p.stem for p in images
+    )
+    if not images:
+        prompt += "none. Describe any visual coverage limitations."
     prompt += f"\nPrimary PDF: {pdf}\nExact source metadata: {workspace / 'metadata.json'}\nPage-numbered extracted full text: {workspace / 'paper.txt'}\nRepository context: {repo or 'No repository link found'}\nSchema: {schema_path}\n"
-    invocation = args + [
-        "--skip-git-repo-check",
-        "--output-schema",
-        str(schema_path),
-        "--output-last-message",
-        str(output),
-        "-",
-    ]
+    invocation = (
+        args
+        + [arg for path in images for arg in ("--image", str(path))]
+        + [
+            "--skip-git-repo-check",
+            "--output-schema",
+            str(schema_path),
+            "--output-last-message",
+            str(output),
+            "-",
+        ]
+    )
     for attempt in range(2):
         output.unlink(missing_ok=True)
         log(f"Codex analysis ({attempt + 1}/2)")

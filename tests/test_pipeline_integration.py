@@ -104,5 +104,5 @@ def test_full_pipeline_passes_repository_evidence_and_exports(tmp_path, athena_v
     note = result.note_path.read_text(encoding="utf-8")
     assert "| Attention | model.py | unclear |" in note
     assert "Code status: partial" in note
-    assert len(requests) == 6
+    assert len(requests) == 7
     assert (result.workspace / "analysis.json").exists()

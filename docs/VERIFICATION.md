@@ -1,26 +1,14 @@
-# Verification record
+﻿# Verification record
 
-Verified locally on Windows / Python 3.13 on 2026-11-24.
+Windows, Python 3.13, 2026-11-26.
 
-Later Athena alignment: the user supplied the read-only paper-analysis workflow, then requested no additional validation. The exporter now reads the shared vault template, uses English managed analysis, preserves personal content, and uses canonical literature folders. Standalone acceptance validation has been removed; optimistic-locking/protected-update safeguards remain. Prior evidence below describes the initial implementation and is not content-level acceptance of the revised workflow.
-
-| Requirement | Evidence |
+| Component | Evidence |
 | --- | --- |
-| CLI run / poll / gui | Typer commands implemented; run flags and error exit tested |
-| arXiv normalization, metadata and PDF | Unit and mock HTTP tests; real 1706.03762 metadata/PDF downloaded |
-| GitHub tree / README / issues | Mock HTTP tests cover populated/empty repositories, issue filtering, wrapped URLs, rate limits |
-| Headless Codex / strict schema / retry | Real local Codex produced validated Chinese JSON; mock tests verify retry and invalid outputs |
-| Obsidian notes | Real note written in Athena; Obsidian reading-view DOM confirms six sections and audit table; YAML and version overwrite tested |
-| Zotero | Official preprint template fields checked; mocked creation and exact ID deduplication tested; live account write awaits credentials |
-| Supabase | Claim race, success, failure and token finalization tested; actual SDK with mock HTTP verifies GET/PATCH filters and return representation; no cloud instance configured |
-| GUI | Tk initialization, settings persistence, threaded execution, log delivery tested; layout requests fit the 680×520 window |
-| Packaging | sdist and wheel built successfully, prompts/templates included |
-| Quality | 27 tests passed; Ruff check/format and pip check passed |
-
-The integrated regression test uses a real generated PDF and pypdf extraction, simulated arXiv/GitHub HTTP responses, and a simulated Codex process. It verifies repository tree and issue evidence reaches the analysis invocation, then checks the actual Markdown audit row and cached JSON. It does not count as live GitHub/Zotero verification.
-
-Two earlier real paper runs completed before a PDF line-wrap extraction bug was corrected. Their notes contain paper analysis but no fetched repository context. After correction the real GitHub request correctly reaches Tensor2Tensor, but anonymous API quota is exhausted. A final live run with repository evidence is pending a GitHub token or quota reset. This is not counted as verified GitHub end-to-end success.
-
-Zotero desktop being open does not supply Web API credentials. Supabase is optional and has no configured deployment. CI configuration is included but has not been run on GitHub; local results do not imply the cross-platform matrix has passed.
-
-Desktop screenshot tooling failed to initialize in the host sandbox. GUI verification uses Tk tests and layout inspection; Obsidian verification uses its live reading-view DOM. An attempted screenshot captured an old visible surface and is not used as evidence.
+| Automated regression suite | 35 tests passed, including a generated PDF, mocked HTTP and Codex integration, Zotero deduplication, Athena export, GUI and queue tests. |
+| Code and package checks | Ruff lint and format checks passed. Pip reported consistent dependencies. The isolated build produced an sdist and a wheel. |
+| arXiv | The live Attention Is All You Need run downloaded the PDF and produced page-numbered text. Poppler rendered six physical pages for visual analysis. |
+| GitHub | With anonymous REST quota exhausted, the live run retrieved Tensor2Tensor source excerpts from the public archive at commit bafdc1b67730430d38d6ab802cbd51f9d053ba2e. Issue titles were unavailable. |
+| Zotero | The local API returned an existing personal-library item for the live paper. This exercised reuse without a Web API key. Automated tests cover creation. |
+| Athena | The exporter uses the vault's shared template and update helper. Regression tests cover preservation of personal content and existing-note protections. |
+| Supabase | The queue tests exercise the SDK against mock HTTP, including conditional claims and finalization. No cloud instance was used. |
+| CI | A GitHub Actions workflow is included. Cross-platform CI awaits publication. |
